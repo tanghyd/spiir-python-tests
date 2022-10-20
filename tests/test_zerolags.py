@@ -27,13 +27,13 @@ def wrapped_partial(func: Callable, *args, **kwargs) -> Callable:
 
 
 def test_df_row_count(a: pd.DataFrame, b: pd.DataFrame):
-    assert len(a) == len(b)
+    assert len(a) == len(b), f"Number of rows do not match."
 
 def test_df_col_count(a: pd.DataFrame, b: pd.DataFrame):
-    assert len(a.columns) == len(b.columns)
+    assert len(a.columns) == len(b.columns), f"Number of columns do not match."
 
 def test_df_col_order(a: pd.DataFrame, b: pd.DataFrame):
-    assert (a.columns == b.columns).all()
+    assert (a.columns == b.columns).all(), f"Columns do not exactly match in order."
 
 def test_df_col_exists(a: pd.DataFrame, b: pd.DataFrame):
     a_in_b = np.all([col in b.columns for col in a.columns])
@@ -85,25 +85,36 @@ def test_str_dtype(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, STR_DTYPES)
 
 TESTS: Dict[str, List[Callable]] = {
-    "df": [test_df_row_count, test_df_col_count, test_df_col_exists, test_df_col_order],
+    "required_df": [test_df_row_count, test_df_col_count, test_df_col_exists],
+    "df": [test_df_col_order],
     "column": [test_dtypes_equal],
     "float": [test_diff],
     "int": [test_diff],
     "string": [test_str_equal_case_insensitive, test_str_equal],
 }
 
+def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame:
+    logger.info(f"Loading {p}...")
+    path = Path(p)
+    if not path.exists():
+        raise FileNotFoundError(f"File or directory at {p} not found.")
+
+    paths = list(path.glob(glob)) if path.is_dir() else [path]
+    return load_table_from_xmls(paths, table=table)
 
 @click.command
 @click.argument("a", type=str)
 @click.argument("b", type=str)
 @click.option("--table", type=str, default="postcoh")
 @click.option("-t", "--tests", type=str, multiple=True)
+@click.option("-g", "--glob", type=str, default="*zerolag_*.xml*")
 @click_logger_options
 def main(
     a: str,
     b: str,
     table: str = "postcoh",
     tests: Optional[Union[str, List[str]]] = None,
+    glob: str = "*",
     log_level: int = logging.WARNING,
     log_file: str = None
 ):
@@ -112,18 +123,13 @@ def main(
 
     logger.info(f"Running tests for tables: {table}")
 
-    logger.info(f"Loading {a}...")
-    df_a = load_table_from_xmls(a, table=table)
-
-    logger.info(f"Loading {b}...")
-    df_b = load_table_from_xmls(b, table=table)
-
-    df_tests_pass = True  # we check dataframe shape/metadata before column-wise tests
+    df_a = load_table(a, table=table, glob=glob)
+    df_b = load_table(b, table=table, glob=glob)
+    df_required_tests_pass = True  # we check required tests before column-wise tests
     
     tests = tests or list(TESTS.keys())
-    # if isinstance(tests, list): tests = [tests]
     for key in tests if isinstance(tests, list) else [tests]:
-        if not df_tests_pass:
+        if not df_required_tests_pass:
             break
         for test in TESTS[key]:
             if "df" in key:
@@ -131,7 +137,8 @@ def main(
                     test(df_a, df_b)
                 except AssertionError as err:
                     logger.warning(f"{test.__name__} error! {err}")
-                    df_tests_pass = False  # will exit if any dataframe tests fail
+                    if "required" in key:
+                        df_required_tests_pass = False  # will exit if any df tests fail
                 else:
                     logger.info(f"{test.__name__} success!")
             else:
