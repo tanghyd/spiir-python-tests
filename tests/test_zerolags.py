@@ -127,12 +127,13 @@ def main(
     # load two sets of tables from .xml files to compare against eachother
     df_a = load_table(a, table=table, glob=glob)
     df_b = load_table(b, table=table, glob=glob)
-    df_required_tests_pass = True  # we check required tests before column-wise tests
+    required_test_fail = False  # we check required tests before column-wise tests
     
     tests = tests or list(TESTS.keys())
     logger.info(f"Running zerolag tests: {tests}")
     for key in tests if isinstance(tests, list) else [tests]:
-        if not df_required_tests_pass:
+        if required_test_fail:
+            logger.warning(f"Required test failed. Aborting...")
             break
         for test in TESTS[key]:
             if "df" in key:
@@ -141,7 +142,7 @@ def main(
                 except AssertionError as err:
                     logger.warning(f"{key}: {test.__name__} error! {err}")
                     if "required" in key:
-                        df_required_tests_pass = False  # will exit if any df tests fail
+                        required_test_fail = True  # will exit if any df tests fail
                 else:
                     logger.info(f"{key}: {test.__name__} success!")
             else:
