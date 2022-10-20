@@ -139,11 +139,11 @@ def main(
                 try:
                     test(df_a, df_b)
                 except AssertionError as err:
-                    logger.warning(f"{test.__name__} error! {err}")
+                    logger.warning(f"{key}: {test.__name__} error! {err}")
                     if "required" in key:
                         df_required_tests_pass = False  # will exit if any df tests fail
                 else:
-                    logger.info(f"{test.__name__} success!")
+                    logger.info(f"{key}: {test.__name__} success!")
             else:
                 if key == "column":
                     cols = df_a.columns
@@ -155,9 +155,9 @@ def main(
                     try:
                         test(df_a[col], df_b[col])
                     except AssertionError as err:
-                        logger.warning(f"{col}: {test.__name__} error! {err}")
+                        logger.warning(f"{key}: {col}: {test.__name__} error! {err}")
                     else:
-                        logger.info(f"{col}: {test.__name__} success!")
+                        logger.info(f"{key}: {col}: {test.__name__} success!")
 
     duration = time.perf_counter() - duration
     logger.info(f"{Path(__file__).stem} script ran in {duration:.4f} seconds.")
