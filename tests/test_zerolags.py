@@ -6,7 +6,6 @@ from typing import Set, Dict, List, Callable
 
 import click
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 
 from spiir.io.ligolw import load_table_from_xmls
@@ -20,21 +19,21 @@ FLOAT_DTYPES: Set[np.dtype] = {np.dtype(np.float32), np.dtype(np.float64)}
 INT_DTYPES: Set[np.dtype] = {np.dtype(np.int32), np.dtype(np.int64)}
 STR_DTYPES: Set[np.dtype] = {np.dtype("O")}
 
-def wrapped_partial(func, *args, **kwargs):
+def wrapped_partial(func: Callable, *args, **kwargs) -> Callable:
     partial_func = partial(func, *args, **kwargs)
     update_wrapper(partial_func, func)
     return partial_func
 
-def test_dtypes_equal(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_dtypes_equal(a: pd.Series, b: pd.Series):
     assert a.dtype == b.dtype, f"Data types between columns must match."
 
-def test_not_na(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_not_na(a: pd.Series, b: pd.Series):
     assert not a.notna().all() and not b.notna().all()
 
-def test_dtypes(a: pd.Series, b: pd.Series, dtypes: Set[np.dtype]) -> pd.Series:
+def test_dtypes(a: pd.Series, b: pd.Series, dtypes: Set[np.dtype]):
     assert a.dtype in dtypes and b.dtypes in dtypes 
 
-def test_diff(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_diff(a: pd.Series, b: pd.Series):
     if (a != b).any():
         if a.dtype in FLOAT_DTYPES or b.dtype in FLOAT_DTYPES:
             # calculate order of magnitude for matching decimal places between a and b
@@ -54,20 +53,21 @@ def test_diff(a: pd.Series, b: pd.Series) -> pd.Series:
         else:
             raise AssertionError("Values do not match.")
 
-def test_float_dtypes(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_float_dtypes(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, FLOAT_DTYPES)
 
-def test_int_dtype(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_int_dtype(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, INT_DTYPES)
 
-def test_str_dtype(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_str_dtype(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, STR_DTYPES)
 
-def test_str_equal(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_str_equal(a: pd.Series, b: pd.Series):
     assert (a == b).all()
 
-def test_str_equal_case_insensitive(a: pd.Series, b: pd.Series) -> pd.Series:
+def test_str_equal_case_insensitive(a: pd.Series, b: pd.Series):
     assert (a.str.lower() == b.str.lower()).all()
+
 
 TESTS: Dict[str, List[Callable]] = {
     "all": [test_dtypes_equal],
