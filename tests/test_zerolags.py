@@ -125,7 +125,7 @@ TESTS: Dict[str, List[Callable]] = {
     "column": [test_dtypes_equal],
     "float": [test_diff],
     "int": [test_diff],
-    "string": [test_str_equal_case_insensitive, test_str_equal],
+    "str": [test_str_equal_case_insensitive, test_str_equal],
 }
 
 
