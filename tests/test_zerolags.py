@@ -15,16 +15,28 @@ from spiir.io.logging import configure_logger
 logger = logging.getLogger(Path(__file__).stem)
 logger.setLevel(logging.DEBUG)
 
-FLOAT_DTYPES: Set[np.dtype] = {np.dtype(np.float32), np.dtype(np.float64)}
-INT_DTYPES: Set[np.dtype] = {np.dtype(np.int32), np.dtype(np.int64)}
-STR_DTYPES: Set[np.dtype] = {np.dtype("O")}
 
+### Utility Functions ###
 
 def wrapped_partial(func: Callable, *args, **kwargs) -> Callable:
     partial_func = partial(func, *args, **kwargs)
     update_wrapper(partial_func, func)
     return partial_func
 
+def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame:
+    logger.info(f"Reading {table} table data from {p}...")
+    path = Path(p)
+    if not path.exists():
+        raise FileNotFoundError(f"File or directory at {p} not found.")
+
+    paths = list(path.glob(glob)) if path.is_dir() else [path]
+    df = load_table_from_xmls(paths, table=table)
+    n, m = len(df), len(df.columns)
+    logger.info(f"Loaded {n} rows and {m} columns from {len(paths)} path(s).")
+    return df
+
+
+### Tests ###
 
 def test_df_row_count(a: pd.DataFrame, b: pd.DataFrame):
     assert len(a) == len(b), f"Number of rows do not match."
@@ -48,7 +60,7 @@ def test_dtypes_equal(a: pd.Series, b: pd.Series):
 
 def test_diff(a: pd.Series, b: pd.Series):
     if (a != b).any():
-        if a.dtype in FLOAT_DTYPES or b.dtype in FLOAT_DTYPES:
+        if a.dtype in DTYPES["float"] or b.dtype in DTYPES["float"]:
             # calculate order of magnitude for matching decimal places between a and b
             with np.errstate(divide='ignore', invalid='ignore'):
                 decimals = (-1*np.floor(np.log10((a - b).abs())))
@@ -72,17 +84,26 @@ def test_str_equal(a: pd.Series, b: pd.Series):
 def test_str_equal_case_insensitive(a: pd.Series, b: pd.Series):
     assert (a.str.lower() == b.str.lower()).all()
 
-def test_dtypes(a: pd.Series, b: pd.Series, dtypes: Set[np.dtype]):
-    assert a.dtype in dtypes and b.dtypes in dtypes 
+def test_dtypes(a: pd.Series, b: pd.Series, dtype: str):
+    assert a.dtype in DTYPES[dtype] and b.dtypes in DTYPES[dtype]
 
 def test_float_dtypes(a: pd.Series, b: pd.Series):
-    test_dtypes(a, b, FLOAT_DTYPES)
+    test_dtypes(a, b, "float")
 
 def test_int_dtype(a: pd.Series, b: pd.Series):
-    test_dtypes(a, b, INT_DTYPES)
+    test_dtypes(a, b, "int")
 
 def test_str_dtype(a: pd.Series, b: pd.Series):
-    test_dtypes(a, b, STR_DTYPES)
+    test_dtypes(a, b, "str")
+
+
+### CONFIGURATION ##
+
+DTYPES: Dict[str, Set[np.dtype]] = {
+    "float": {np.dtype(np.float32), np.dtype(np.float64)},
+    "int": {np.dtype(np.int32), np.dtype(np.int64)},
+    "str": {np.dtype("O")}
+}
 
 TESTS: Dict[str, List[Callable]] = {
     "required_df": [test_df_row_count, test_df_col_count, test_df_col_exists],
@@ -93,17 +114,8 @@ TESTS: Dict[str, List[Callable]] = {
     "string": [test_str_equal_case_insensitive, test_str_equal],
 }
 
-def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame:
-    logger.info(f"Reading {table} table data from {p}...")
-    path = Path(p)
-    if not path.exists():
-        raise FileNotFoundError(f"File or directory at {p} not found.")
 
-    paths = list(path.glob(glob)) if path.is_dir() else [path]
-    df = load_table_from_xmls(paths, table=table)
-    n, m = len(df), len(df.columns)
-    logger.info(f"Loaded {n} rows and {m} columns from {len(paths)} path(s).")
-    return df
+### Command Line Interface ###
 
 @click.command
 @click.argument("a", type=str)
@@ -127,14 +139,16 @@ def main(
     # load two sets of tables from .xml files to compare against eachother
     df_a = load_table(a, table=table, glob=glob)
     df_b = load_table(b, table=table, glob=glob)
-    required_test_fail = False  # we check required tests before column-wise tests
     
     tests = tests or list(TESTS.keys())
     logger.info(f"Running zerolag tests: {tests}")
+    required_test_fail = False  # we check required tests before column-wise tests
+    
     for key in tests if isinstance(tests, list) else [tests]:
         if required_test_fail:
             logger.warning(f"Required test failed. Aborting...")
             break
+
         for test in TESTS[key]:
             if "df" in key:
                 try:
