@@ -150,6 +150,8 @@ def main(
             break
 
         for test in TESTS[key]:
+
+            # dataframe-wide tests
             if "df" in key:
                 try:
                     test(df_a, df_b)
@@ -159,6 +161,8 @@ def main(
                         required_test_fail = True  # will exit if any df tests fail
                 else:
                     logger.info(f"{key}: {test.__name__} success!")
+            
+            # columnnar tests
             else:
                 if key == "column":
                     cols = df_a.columns
