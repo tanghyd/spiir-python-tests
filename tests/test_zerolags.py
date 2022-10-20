@@ -102,7 +102,7 @@ def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame
     paths = list(path.glob(glob)) if path.is_dir() else [path]
     df = load_table_from_xmls(paths, table=table)
     n, m = len(df), len(df.columns)
-    logger.info(f"Loaded {n} rows and {m} columns from {len(p)} paths.")
+    logger.info(f"Loaded {n} rows and {m} columns from {len(paths)} path(s).")
     return df
 
 @click.command
