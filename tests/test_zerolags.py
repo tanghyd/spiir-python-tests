@@ -2,14 +2,13 @@ import logging
 import time
 from functools import partial, update_wrapper
 from pathlib import Path
-from typing import Optional, Union, Set, Dict, List, Callable
+from typing import Callable, Dict, List, Optional, Set, Union
 
 import click
-import pandas as pd
 import numpy as np
-
-from spiir.io.ligolw import load_table_from_xmls
+import pandas as pd
 from spiir.io.cli import click_logger_options
+from spiir.io.ligolw import load_table_from_xmls
 from spiir.io.logging import configure_logger
 
 logger = logging.getLogger(Path(__file__).stem)
@@ -18,10 +17,12 @@ logger.setLevel(logging.DEBUG)
 
 ### Utility Functions ###
 
+
 def wrapped_partial(func: Callable, *args, **kwargs) -> Callable:
     partial_func = partial(func, *args, **kwargs)
     update_wrapper(partial_func, func)
     return partial_func
+
 
 def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame:
     logger.info(f"Reading {table} table data from {p}...")
@@ -38,60 +39,73 @@ def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame
 
 ### Tests ###
 
+
 def test_df_row_count(a: pd.DataFrame, b: pd.DataFrame):
     assert len(a) == len(b), f"Number of rows do not match."
+
 
 def test_df_col_count(a: pd.DataFrame, b: pd.DataFrame):
     assert len(a.columns) == len(b.columns), f"Number of columns do not match."
 
+
 def test_df_col_order(a: pd.DataFrame, b: pd.DataFrame):
     assert (a.columns == b.columns).all(), f"Columns do not exactly match in order."
+
 
 def test_df_col_exists(a: pd.DataFrame, b: pd.DataFrame):
     a_in_b = np.all([col in b.columns for col in a.columns])
     b_in_a = np.all([col in b.columns for col in b.columns])
     assert a_in_b and b_in_a, f"Columns from A in B? {a_in_b}; from B in A? {b_in_a}"
 
+
 def test_not_na(a: pd.Series, b: pd.Series):
     assert not a.notna().all() and not b.notna().all()
 
+
 def test_dtypes_equal(a: pd.Series, b: pd.Series):
     assert a.dtype == b.dtype, f"Data types between columns must match."
+
 
 def test_diff(a: pd.Series, b: pd.Series):
     if (a != b).any():
         if a.dtype in DTYPES["float"] or b.dtype in DTYPES["float"]:
             # calculate order of magnitude for matching decimal places between a and b
-            with np.errstate(divide='ignore', invalid='ignore'):
-                decimals = (-1*np.floor(np.log10((a - b).abs())))
+            with np.errstate(divide="ignore", invalid="ignore"):
+                decimals = -1 * np.floor(np.log10((a - b).abs()))
             decimals = decimals.replace(np.inf, np.nan)
             decimals = decimals.astype(pd.Int64Dtype())  # nullable
             decimals = decimals.dropna()
 
             if len(decimals) > 0:
                 stats = {k: getattr(decimals, k)() for k in ("min", "max", "median")}
-                stats_summary = ' | '.join([f'{k}: {v}' for k, v in stats.items()])
-                err = f"Values do not match up to n decimal places: {stats_summary}"        
+                stats_summary = " | ".join([f"{k}: {v}" for k, v in stats.items()])
+                err = f"Values do not match up to n decimal places: {stats_summary}"
                 raise AssertionError(err)
             else:
                 logger.warning(f"[DEBUG] Unknown behaviour: {stats}")
         else:
             raise AssertionError("Values do not match.")
 
+
 def test_str_equal(a: pd.Series, b: pd.Series):
     assert (a == b).all()
+
 
 def test_str_equal_case_insensitive(a: pd.Series, b: pd.Series):
     assert (a.str.lower() == b.str.lower()).all()
 
+
 def test_dtypes(a: pd.Series, b: pd.Series, dtype: str):
     assert a.dtype in DTYPES[dtype] and b.dtypes in DTYPES[dtype]
+
 
 def test_float_dtypes(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, "float")
 
+
 def test_int_dtype(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, "int")
+
 
 def test_str_dtype(a: pd.Series, b: pd.Series):
     test_dtypes(a, b, "str")
@@ -102,7 +116,7 @@ def test_str_dtype(a: pd.Series, b: pd.Series):
 DTYPES: Dict[str, Set[np.dtype]] = {
     "float": {np.dtype(np.float32), np.dtype(np.float64)},
     "int": {np.dtype(np.int32), np.dtype(np.int64)},
-    "str": {np.dtype("O")}
+    "str": {np.dtype("O")},
 }
 
 TESTS: Dict[str, List[Callable]] = {
@@ -116,6 +130,7 @@ TESTS: Dict[str, List[Callable]] = {
 
 
 ### Command Line Interface ###
+
 
 @click.command
 @click.argument("a", type=str)
@@ -131,7 +146,7 @@ def main(
     tests: Optional[Union[str, List[str]]] = None,
     glob: str = "*",
     log_level: int = logging.WARNING,
-    log_file: str = None
+    log_file: str = None,
 ):
     configure_logger(logger, log_level, log_file)
     duration = time.perf_counter()
@@ -139,11 +154,11 @@ def main(
     # load two sets of tables from .xml files to compare against eachother
     df_a = load_table(a, table=table, glob=glob)
     df_b = load_table(b, table=table, glob=glob)
-    
+
     tests = tests or list(TESTS.keys())
     logger.info(f"Running zerolag tests: {tests}")
     required_test_fail = False  # we check required tests before column-wise tests
-    
+
     for key in tests if isinstance(tests, list) else [tests]:
         if required_test_fail:
             logger.warning(f"Required test failed. Aborting...")
@@ -161,7 +176,7 @@ def main(
                         required_test_fail = True  # will exit if any df tests fail
                 else:
                     logger.info(f"{key}: {test.__name__} success!")
-            
+
             # columnnar tests
             else:
                 if key == "column":
@@ -182,6 +197,7 @@ def main(
 
     duration = time.perf_counter() - duration
     logger.info(f"{Path(__file__).stem} script ran in {duration:.4f} seconds.")
+
 
 if __name__ == "__main__":
     main()
