@@ -116,7 +116,7 @@ def test_str_dtype(a: pd.Series, b: pd.Series):
 DTYPES: Dict[str, Set[np.dtype]] = {
     "float": {np.dtype(np.float32), np.dtype(np.float64)},
     "int": {np.dtype(np.int32), np.dtype(np.int64)},
-    "str": {np.dtype("O")},
+    "str": {np.dtype(object)},
 }
 
 TESTS: Dict[str, List[Callable]] = {
@@ -184,8 +184,7 @@ def main(
                 elif key in df_a.columns:
                     cols = [key]
                 else:
-                    dtype_column_mask = df_a.dtypes.apply(str).str.contains(key)
-                    cols = df_a.dtypes.loc[dtype_column_mask].index  # column names
+                    cols = df_a.dtypes.loc[df_a.dtypes.isin(DTYPES[key])].index
 
                 for col in cols:
                     try:
