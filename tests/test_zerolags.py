@@ -148,6 +148,8 @@ def main(
             else:
                 if key == "column":
                     cols = df_a.columns
+                elif key in df_a.columns:
+                    cols = [key]
                 else:
                     dtype_column_mask = df_a.dtypes.apply(str).str.contains(key)
                     cols = df_a.dtypes.loc[dtype_column_mask].index  # column names
