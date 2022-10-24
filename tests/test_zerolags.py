@@ -161,7 +161,7 @@ def main(
 
     for key in tests if isinstance(tests, list) else [tests]:
         if required_test_fail:
-            logger.warning(f"Required test failed. Aborting...")
+            logger.error(f"Required test failed. Aborting...")
             break
 
         for test in TESTS[key]:
@@ -173,7 +173,8 @@ def main(
                 except AssertionError as err:
                     logger.warning(f"{key}: {test.__name__} error! {err}")
                     if "required" in key:
-                        required_test_fail = True  # will exit if any df tests fail
+                        logger.error(f"{key}: {test.__name__} error! {err}")
+                        required_test_fail = True
                 else:
                     logger.info(f"{key}: {test.__name__} success!")
 
@@ -191,6 +192,9 @@ def main(
                         test(df_a[col], df_b[col])
                     except AssertionError as err:
                         logger.warning(f"{key}: {col}: {test.__name__} error! {err}")
+                        if "required" in key:
+                            logger.error(f"{key}: {test.__name__} error! {err}")
+                            required_test_fail = True
                     else:
                         logger.info(f"{key}: {col}: {test.__name__} success!")
 
