@@ -23,7 +23,7 @@ def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame
     if not path.exists():
         raise FileNotFoundError(f"File or directory at {p} not found.")
 
-    paths = list(path.glob(glob)) if path.is_dir() else [path]
+    paths = sorted(path.glob(glob)) if path.is_dir() else [path]
     df = load_table_from_xmls(paths, table=table, legacy_postcoh_compat=False)
     n, m = len(df), len(df.columns)
     logger.info(f"Loaded {n} rows and {m} columns from {len(paths)} path(s).")
