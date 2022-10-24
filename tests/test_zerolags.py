@@ -72,9 +72,7 @@ def test_diff(a: pd.Series, b: pd.Series):
             # calculate order of magnitude for matching decimal places between a and b
             with np.errstate(divide="ignore", invalid="ignore"):
                 decimals = -1 * np.floor(np.log10((a - b).abs()))
-            decimals = decimals.replace(np.inf, np.nan)
-            decimals = decimals.astype(pd.Int64Dtype())  # nullable
-            decimals = decimals.dropna()
+            decimals = decimals.replace(np.inf, np.nan).dropna().astype(int)
 
             if len(decimals) > 0:
                 stats = {k: getattr(decimals, k)() for k in ("min", "max", "median")}
