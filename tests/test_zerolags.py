@@ -195,7 +195,7 @@ def main(
                         try:
                             column_values.append(df[col])
                         except KeyError as exc:
-                            logger.error(f"{prefix}: {col} not found in {path} - {exc}")
+                            logger.error(f"{prefix}: {col} not found in {path}! {exc}")
                             break
                     else:
                         # run tests for retrieved column values
