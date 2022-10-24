@@ -166,10 +166,11 @@ def main(
                 try:
                     test(df_a, df_b)
                 except AssertionError as err:
-                    logger.warning(f"{prefix}: failure! {err}")
                     if "required" in key:
                         logger.error(f"{prefix}: critical failure! {err}")
                         required_test_fail = True
+                    else:
+                        logger.warning(f"{prefix}: failure! {err}")
                 else:
                     logger.info(f"{prefix} success!")
 
@@ -200,10 +201,11 @@ def main(
                         try:
                             test(*column_values)
                         except AssertionError as err:
-                            logger.warning(f"{prefix}: {col} failure! {err}")
                             if "required" in key:
                                 logger.error(f"{prefix}: {col} critical failure! {err}")
                                 required_test_fail = True
+                            else:
+                                logger.warning(f"{prefix}: {col} failure! {err}")
                         else:
                             logger.info(f"{prefix}: {col} success!")
 
