@@ -120,8 +120,8 @@ DTYPES: Dict[str, Set[np.dtype]] = {
 }
 
 TESTS: Dict[str, List[Callable]] = {
-    "required_df": [test_df_row_count, test_df_col_count, test_df_col_exists],
-    "df": [test_df_col_order],
+    "required_df": [test_df_row_count],
+    "df": [test_df_col_count, test_df_col_exists, test_df_col_order],
     "column": [test_dtypes_equal],
     "float": [test_diff],
     "int": [test_diff],
@@ -165,18 +165,19 @@ def main(
             break
 
         for test in TESTS[key]:
+            prefix = f"{key} - {test.__name__}"  # for logging messages
 
             # dataframe-wide tests
             if "df" in key:
                 try:
                     test(df_a, df_b)
                 except AssertionError as err:
-                    logger.warning(f"{key}: {test.__name__} error! {err}")
+                    logger.warning(f"{prefix}: failure! {err}")
                     if "required" in key:
-                        logger.error(f"{key}: {test.__name__} error! {err}")
+                        logger.error(f"{prefix}: critical failure! {err}")
                         required_test_fail = True
                 else:
-                    logger.info(f"{key}: {test.__name__} success!")
+                    logger.info(f"{prefix} success!")
 
             # columnnar tests
             else:
@@ -188,15 +189,25 @@ def main(
                     cols = df_a.dtypes.loc[df_a.dtypes.isin(DTYPES[key])].index
 
                 for col in cols:
-                    try:
-                        test(df_a[col], df_b[col])
-                    except AssertionError as err:
-                        logger.warning(f"{key}: {col}: {test.__name__} error! {err}")
-                        if "required" in key:
-                            logger.error(f"{key}: {test.__name__} error! {err}")
-                            required_test_fail = True
+                    # get column values from dataframe
+                    column_values = []
+                    for path, df in zip([a, b], [df_a, df_b]):
+                        try:
+                            column_values.append(df[col])
+                        except KeyError as exc:
+                            logger.error(f"{prefix}: {col} not found in {path} - {exc}")
+                            break
                     else:
-                        logger.info(f"{key}: {col}: {test.__name__} success!")
+                        # run tests for retrieved column values
+                        try:
+                            test(*column_values)
+                        except AssertionError as err:
+                            logger.warning(f"{prefix}: {col} failure! {err}")
+                            if "required" in key:
+                                logger.error(f"{prefix}: {col} critical failure! {err}")
+                                required_test_fail = True
+                        else:
+                            logger.info(f"{prefix}: {col} success!")
 
     duration = time.perf_counter() - duration
     logger.info(f"{Path(__file__).stem} script ran in {duration:.4f} seconds.")
