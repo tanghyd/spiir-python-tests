@@ -116,7 +116,7 @@ DTYPES: Dict[str, Set[np.dtype]] = {
 TESTS: Dict[str, List[Callable]] = {
     "required_df": [test_df_row_count],
     "df": [test_df_col_count, test_df_col_exists, test_df_col_order],
-    "column": [test_dtypes_equal],
+    "columns": [test_dtypes_equal],
     "float": [test_diff],
     "int": [test_diff],
     "str": [test_str_equal_case_insensitive, test_str_equal],
@@ -175,7 +175,7 @@ def main(
 
             # columnnar tests
             else:
-                if key == "column":
+                if key == "columns":
                     cols = df_a.columns.tolist() + df_b.columns.tolist()
                     cols = list(set(cols))  # drop duplicates
                 elif key in df_a.columns or key in df_b.columns:
