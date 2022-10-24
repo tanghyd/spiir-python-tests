@@ -31,7 +31,7 @@ def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame
         raise FileNotFoundError(f"File or directory at {p} not found.")
 
     paths = list(path.glob(glob)) if path.is_dir() else [path]
-    df = load_table_from_xmls(paths, table=table)
+    df = load_table_from_xmls(paths, table=table, legacy_postcoh_compat=False)
     n, m = len(df), len(df.columns)
     logger.info(f"Loaded {n} rows and {m} columns from {len(paths)} path(s).")
     return df
@@ -49,12 +49,14 @@ def test_df_col_count(a: pd.DataFrame, b: pd.DataFrame):
 
 
 def test_df_col_order(a: pd.DataFrame, b: pd.DataFrame):
-    assert (a.columns == b.columns).all(), f"Columns do not exactly match in order."
-
+    try:
+        assert (a.columns == b.columns).all(), f"Columns do not exactly match in order."
+    except ValueError as exc:
+        raise AssertionError(f"Columns do not match - {exc}")
 
 def test_df_col_exists(a: pd.DataFrame, b: pd.DataFrame):
     a_in_b = np.all([col in b.columns for col in a.columns])
-    b_in_a = np.all([col in b.columns for col in b.columns])
+    b_in_a = np.all([col in a.columns for col in b.columns])
     assert a_in_b and b_in_a, f"Columns from A in B? {a_in_b}; from B in A? {b_in_a}"
 
 
