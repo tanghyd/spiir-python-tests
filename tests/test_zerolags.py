@@ -192,8 +192,8 @@ def main(
                     for path, df in zip([a, b], [df_a, df_b]):
                         try:
                             column_values.append(df[col])
-                        except KeyError as exc:
-                            logger.error(f"{prefix}: {col} not found in {path}! {exc}")
+                        except KeyError:
+                            logger.warning(f"{prefix}: {col} not found in {path}!")
                             break
                     else:
                         # run tests for retrieved column values
