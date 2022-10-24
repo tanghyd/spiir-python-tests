@@ -4,7 +4,7 @@
 #SBATCH --output=logs/test_zerolags_%j.log
 #SBATCH --error=logs/test_zerolags_%j.log
 #SBATCH --ntasks=1
-#SBATCH --time=01:00:00
+#SBATCH --time=00:10:00
 #SBATCH --mem=12g
 #SBATCH --cpus-per-task=4
 #SBATCH --requeue
