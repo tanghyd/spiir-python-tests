@@ -1,6 +1,5 @@
 import logging
 import time
-from functools import partial, update_wrapper
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, Union
 
@@ -16,12 +15,6 @@ logger.setLevel(logging.DEBUG)
 
 
 ### Utility Functions ###
-
-
-def wrapped_partial(func: Callable, *args, **kwargs) -> Callable:
-    partial_func = partial(func, *args, **kwargs)
-    update_wrapper(partial_func, func)
-    return partial_func
 
 
 def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame:
@@ -53,6 +46,7 @@ def test_df_col_order(a: pd.DataFrame, b: pd.DataFrame):
         assert (a.columns == b.columns).all(), f"Columns do not exactly match in order."
     except ValueError as exc:
         raise AssertionError(f"Columns do not match - {exc}")
+
 
 def test_df_col_exists(a: pd.DataFrame, b: pd.DataFrame):
     a_in_b = np.all([col in b.columns for col in a.columns])
