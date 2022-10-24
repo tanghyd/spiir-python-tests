@@ -114,8 +114,8 @@ DTYPES: Dict[str, Set[np.dtype]] = {
 }
 
 TESTS: Dict[str, List[Callable]] = {
-    "required_df": [test_df_row_count],
     "df": [test_df_col_count, test_df_col_exists, test_df_col_order],
+    "required_df": [test_df_row_count],
     "columns": [test_dtypes_equal],
     "float": [test_diff],
     "int": [test_diff],
