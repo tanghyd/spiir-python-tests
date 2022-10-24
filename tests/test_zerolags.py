@@ -182,11 +182,15 @@ def main(
             # columnnar tests
             else:
                 if key == "column":
-                    cols = df_a.columns
-                elif key in df_a.columns:
+                    cols = df_a.columns.tolist() + df_b.columns.tolist()
+                    cols = list(set(cols))  # drop duplicates
+                elif key in df_a.columns or key in df_b.columns:
                     cols = [key]
                 else:
-                    cols = df_a.dtypes.loc[df_a.dtypes.isin(DTYPES[key])].index
+                    a_cols = df_a.dtypes.loc[df_a.dtypes.isin(DTYPES[key])].index
+                    b_cols = df_b.dtypes.loc[df_b.dtypes.isin(DTYPES[key])].index
+                    cols = a_cols.tolist() + b_cols.tolist()
+                    cols = list(set(cols))  # drop duplicates
 
                 for col in cols:
                     # get column values from dataframe
