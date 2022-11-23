@@ -1,14 +1,15 @@
+
+import functools
 import logging
 import time
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Set, Union
+from os import PathLike
+from typing import Optional, Union, Callable, Dict, List, Set
 
 import click
 import numpy as np
 import pandas as pd
-from spiir.io.cli import click_logger_options
-from spiir.io.ligolw import load_table_from_xmls
-from spiir.io.logging import configure_logger
+from spiir.data.ligolw import load_table_from_xmls
 
 logger = logging.getLogger(Path(__file__).stem)
 logger.setLevel(logging.DEBUG)
@@ -17,6 +18,56 @@ logger.setLevel(logging.DEBUG)
 ### Utility Functions ###
 
 
+def click_logger_options(f):
+    """A decorator function to include click options for logging arguments."""
+    f = click.option(f"--log-level", "log_level", type=int, default=logging.WARNING)(f)
+    f = click.option("--verbose", "log_level", type=int, flag_value=logging.INFO)(f)
+    f = click.option("--debug", "log_level", type=int, flag_value=logging.DEBUG)(f)
+    f = click.option("--log-file", type=click.Path(writable=True), default=None)(f)
+
+    @functools.wraps(f)
+    def wrapper_common_options(*args, **kwargs):
+        return f(*args, **kwargs)
+
+    return wrapper_common_options
+
+
+def configure_logger(
+    logger: logging.Logger,
+    level: int = logging.WARNING,
+    file: Optional[Union[str, PathLike]] = None,
+    formatter: Optional[Union[str, logging.Formatter]] = None,
+) -> logging.Logger:
+    """Configures the logging levels and output for a pre-existing logger instance."""
+    # configure the format of logging messages
+    if formatter is None:
+        fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
+    elif isinstance(formatter, str):
+        formatter = logging.Formatter(formatter, datefmt="%Y-%m-%d %H:%M:%S")
+    assert isinstance(formatter, logging.Formatter), "formatter is invalid."
+
+    # setup console logging
+    console_log = logging.StreamHandler()  # console logger
+    console_log.setLevel(level)
+    console_log.setFormatter(formatter)
+    logger.addHandler(console_log)
+
+    # setup file logging, if a file path is provided
+    if file is not None:
+        Path(file).parent.mkdir(parents=True, exist_ok=True)
+        try:
+            file_log = logging.FileHandler(str(file))
+        except IsADirectoryError as err:
+            raise IsADirectoryError(f"Invalid path '{str(file)}' for file log") from err
+        file_log.setLevel(logging.DEBUG)
+        file_log.setFormatter(formatter)
+        logger.addHandler(file_log)
+        logger.debug(f"Initialising file log output to {str(file)}.")
+
+    return logger
+
+ 
 def load_table(p: Union[str, Path], table: str, glob: str = "*") -> pd.DataFrame:
     logger.info(f"Reading {table} table data from {p}...")
     path = Path(p)
